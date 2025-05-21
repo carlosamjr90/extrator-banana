@@ -130,11 +130,12 @@ def extrair_dados_bananas(tabela):
 tabela_final = []
 
 if uploaded_files:
+    lojas_processadas = {}
     for pdf_file in uploaded_files:
         data_entrega, cnpj, tabela = processar_pdf(pdf_file)
         nome_fantasia = cnpj_para_fantasia.get(cnpj, cnpj or "")
         dados = extrair_dados_bananas(tabela)
-        tabela_final.append({
+        lojas_processadas[nome_fantasia] = {
             "Data de entrega": data_entrega,
             "Loja": nome_fantasia,
             "Qtd Maçã": formatar_quantidade(dados.get("maçã", ("", ""))[0]),
@@ -147,13 +148,28 @@ if uploaded_files:
             "Valor Terra": formatar_bruto(dados.get("terra", ("", ""))[1]),
             "Qtd Marmelo": formatar_quantidade(dados.get("marmelo", ("", ""))[0]),
             "Valor Marmelo": formatar_bruto(dados.get("marmelo", ("", ""))[1]),
-        })
+        }
+    # Garante que todas as lojas apareçam na ordem correta
+    for loja in ordem_lojas:
+        if loja in lojas_processadas:
+            tabela_final.append(lojas_processadas[loja])
+        else:
+            tabela_final.append({
+                "Data de entrega": "",
+                "Loja": loja,
+                "Qtd Maçã": "",
+                "Valor Maçã": "",
+                "Qtd Prata": "",
+                "Valor Prata": "",
+                "Qtd Nanica": "",
+                "Valor Nanica": "",
+                "Qtd Terra": "",
+                "Valor Terra": "",
+                "Qtd Marmelo": "",
+                "Valor Marmelo": "",
+            })
 
     df = pd.DataFrame(tabela_final)
-
-    # Reordene conforme ordem_lojas
-    df["Ordem"] = df["Loja"].apply(lambda x: ordem_lojas.index(x) if x in ordem_lojas else 999)
-    df = df.sort_values("Ordem").drop(columns=["Ordem"])
 
     st.write("Tabela extraída:")
     st.dataframe(df)
@@ -165,3 +181,4 @@ if uploaded_files:
     st.download_button("Baixar tabela em Excel", output.getvalue(), file_name="tabela_bananas.xlsx")
 else:
     st.info("Faça upload de um ou mais PDFs para começar.")
+
